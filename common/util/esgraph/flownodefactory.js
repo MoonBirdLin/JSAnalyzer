@@ -20,7 +20,7 @@
 
 
 var FlowNode = require('./flownode'),
-    namespace = require('../namespace'),
+    namespace = require('../../../ns/namespace'),
     internal = namespace();
 
 /**
