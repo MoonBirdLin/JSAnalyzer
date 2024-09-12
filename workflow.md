@@ -27,7 +27,7 @@
     - Java: [class name]((None) | \$\$[method name])
     - JavaScript: [js file name](\$\$[(class name) | (object name) | (method name)])*
 
-## Inheritance Analysis
+## Class Heritance Analysis
 - 分析 Class/Interfece 的继承关系, 生成继承关系图(结构为字典)
   - 实现思路暂时不知道, 可能会GPT辅助先写一个简单版本
   - 难点: 要考虑prototype变更的情况...因此一个类/接口可能继承自多个类/接口

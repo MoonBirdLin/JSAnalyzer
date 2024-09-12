@@ -12,7 +12,7 @@
 ### NameSpace Analysis
 - 分析全部文件中的变量/对象/方法的命名空间, 最终生成命名空间图, 图结构为前缀树图(实现为字典)
 
-### Inheritance Analysis
+### Class Heritance Analysis
 - 分析 Class/Interfece 的继承关系, 生成继承关系图(结构为字典)
 
 ### MPTA(Method Pointer Analysis)
