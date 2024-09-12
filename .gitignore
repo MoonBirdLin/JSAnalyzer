@@ -1,6 +1,9 @@
 # tesing files
 test.js
 
+# vscode
+/.vscode/*
+
 # dependency directories
 node_modules
 jspm_packages
@@ -12,7 +15,9 @@ __pycache__
 
 # configs for parallel runs
 input/configs/*
+input/test/*
 !input/configs/.gitkeep
+!input/test/.gitkeep
 
 # outputs and exports
 outputs/*

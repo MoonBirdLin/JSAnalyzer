@@ -18,6 +18,24 @@
   },
   "homepage": "https://github.com/MoonBirdLin/JSAnalyzer#readme",
   "dependencies": {
-    "esprima": "^4.0.1"
+    "compression": "^1.7.4",
+    "core-js": "^2.6.12",
+    "csv-writer": "^1.6.0",
+    "domino": "^2.1.6",
+    "escodegen": "^2.1.0",
+    "esgraph": "^0.3.0",
+    "esmangle": "^1.0.1",
+    "espree": "^10.1.0",
+    "esprima": "^4.0.1",
+    "esprima-next": "^6.0.3",
+    "filbert": "^0.1.20",
+    "latest": "^0.2.0",
+    "node-worker-threads-pool": "^1.5.1",
+    "open": "^10.1.0",
+    "php-parser": "^3.1.5",
+    "process.argv": "^0.6.1",
+    "source-map": "^0.7.4",
+    "util": "^0.12.5",
+    "walkes": "^0.2.1"
   }
 }
