@@ -28,3 +28,4 @@
 - [SoheilKhodayari/JAW](https://github.com/SoheilKhodayari/JAW)
 - [flyboss/MiniTracker](https://github.com/flyboss/MiniTracker)
 - [sukyoung/safe](https://github.com/sukyoung/safe)
+- [KTH-LangSec/silent-spring](https://github.com/KTH-LangSec/silent-spring)
