@@ -1,0 +1,23 @@
+{
+  "name": "jsanayzer",
+  "version": "1.0.0",
+  "description": "- 一个自实现的JS程序分析工具",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MoonBirdLin/JSAnalyzer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MoonBirdLin/JSAnalyzer/issues"
+  },
+  "homepage": "https://github.com/MoonBirdLin/JSAnalyzer#readme",
+  "dependencies": {
+    "esprima": "^4.0.1"
+  }
+}
