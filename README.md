@@ -22,6 +22,8 @@
 - 基于 MPTA 和 Inheritance Analysis 的结果生成 CallGraph
 
 # References
+- [Swatinem/esgraph](https://github.com/Swatinem/esgraph)
+- [Swatinem/analyses](https://github.com/Swatinem/analyses)
 - [Song-Li/ODGen](https://github.com/Song-Li/ODGen)
 - [CoCoAbstractInterpretation/CoCo](https://github.com/CoCoAbstractInterpretation/CoCo)
 - [fast-sp-2023/fast](https://github.com/fast-sp-2023/fast)
