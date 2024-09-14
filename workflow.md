@@ -1,6 +1,6 @@
 # 整体框架研究思路
 
-## MDG(Module Dependency Graph) Analysis
+## MDG(Module Dependency Graph) Analysis (Finished)
 - 文件间根据关键字匹配构建的引入关系, 不涉及复杂程序分析
 - MDG: 分析模块之间的依赖关系, 生成模块依赖图; 图结构为每个js文件的导入导出字典
   - 此后的 NameSpace 结构分析需要利用模块间依赖关系梳理
