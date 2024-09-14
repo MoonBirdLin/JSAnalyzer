@@ -30,4 +30,4 @@
 - [SoheilKhodayari/JAW](https://github.com/SoheilKhodayari/JAW)
 - [flyboss/MiniTracker](https://github.com/flyboss/MiniTracker)
 - [sukyoung/safe](https://github.com/sukyoung/safe)
-- [KTH-LangSec/silent-spring](https://github.com/KTH-LangSec/silent-spring)
+- [KTH-LangSec/silent-spring](https://github.com/KTH-LangSec/silent-spring) (仅包含一个CodeQL的查询Pipeline, 没有程序分析base上的内容)
