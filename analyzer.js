@@ -7,14 +7,15 @@ const constantsModule = require('./common/constants');
 
 
 async function initializeAnalyzer(configPth) {
-    let astcontroler = astCtrl.getAstPool();
+    // Initialize config
     let configData = config.parseConfig(configPth);
     let astParserIns = await astParserCtrl.getOrSetAstParser(configData.language);
-    await astcontroler.constructAstDir(configData.targetDir);
     if (configData.language == undefined) {
         configData.language = constantsModule.LANG.js;
     }
-    
+    // Initialize ASTs
+    let astcontroler = astCtrl.getAstPool();
+    await astcontroler.constructAstDir(configData.targetDir);
 }
 
 module.exports = {
