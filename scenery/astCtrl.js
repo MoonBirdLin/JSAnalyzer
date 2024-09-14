@@ -60,7 +60,7 @@ class AstPool {
     }
 }
 
-// Ast SingleTon
+// Ast SingleTon, contains All ast tree of js files.
 function getAstPool() {
     var delegate = null;
     function astPoolInstance () {

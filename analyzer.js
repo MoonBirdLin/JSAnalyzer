@@ -5,7 +5,7 @@ const astCtrl = require("./scenery/astCtrl");
 const astParserCtrl = require("./scenery/astParserCtrl");
 const constantsModule = require('./common/constants');
 
-
+// The first step of Analysis. This will initialize all Global/Scenery Objects.
 async function initializeAnalyzer(configPth) {
     // Initialize config
     let configData = config.parseConfig(configPth);

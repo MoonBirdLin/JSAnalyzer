@@ -1,7 +1,7 @@
 const astparser = require('../common/util/ast/parser/astparser');
 const constantsModule = require('../common/constants');
 
-// AST Parser SingleTon
+// AST Parser SingleTon. This is a global singleton to get the astParser with target language(For now, js only)
 function getAstParser() {
     var delegate = null;
     async function astParserInstance (astParserString = "default") {
