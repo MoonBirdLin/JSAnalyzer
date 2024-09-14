@@ -55,8 +55,13 @@ class AstPool {
     }
 
     dumpAstPool() {
-        const mapObj = Object.fromEntries(this.pool);
-        return JSON.stringify(mapObj, null, 4);
+        // let mapObj = Object.fromEntries(this.pool);
+        // return JSON.stringify(mapObj, null, 4)
+        let mapObj = new Map();
+        for (let [astName, ast] of this.pool) {
+            mapObj.set(astName, JSON.stringify(ast, null, 4));
+        }
+        return mapObj;
     }
 }
 

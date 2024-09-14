@@ -20,7 +20,8 @@
 /*
  * Reading source files
  */
-var fs = require('fs');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * SourceReader
@@ -57,6 +58,24 @@ SourceReader.prototype.getSourceFromFile = function (filename) {
     return source;
 };
 
+/**
+ * Write file content
+ * @param {string} filename
+ * @returns {string} file content
+ */
+SourceReader.prototype.writeFile = function (filePath, content) {
+    "use strict";
+    try {
+        const dir = path.dirname(filePath);
+        if (fs.existsSync(dir) == false) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, content, 'utf8');
+        console.log('Writed File:', filePath);
+    } catch (err) {
+        console.error('Error when Writing File :', err);
+    }
+};
 
 
 var reader = new SourceReader();
