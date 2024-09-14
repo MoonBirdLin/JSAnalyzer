@@ -24,10 +24,11 @@ async function getParser(language){
  * @param {Object} [options] Option object
  * @returns {Object} AST
  */
-async function createASTFromSource(code, language, options){
+async function createASTFromSource(code, astParser, options){
 
 	try {
-		var parser = await getParser(language);
+		// var parser = await getParser(language);
+		var parser = astParser;
 		if(parser) {
 			return await parser.parseAST(code, options);
 		}

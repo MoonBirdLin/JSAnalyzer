@@ -4,6 +4,7 @@ const constantsModule = require('../constants');
 const astparser = require('../util/ast/parser/astparser');
 const codeProcessor = require('../core/transformation/preprecessor');
 const flownodeFactory = require('../util/esgraph/flownodefactory');
+const astParserCtrl = require('../../scenery/astParserCtrl');
 
 /**
  * Initializes the parse tree with unique node IDs
@@ -13,13 +14,12 @@ const flownodeFactory = require('../util/esgraph/flownodefactory');
  * @param {Bool} preprocessing: whether to do code preprocessing and transformation before analysis
  * @returns {void}
  */
-async function initializeModelsFromSource(scriptName, code, language, preprocessing = false){
+async function initializeModelsFromSource(scriptName, scriptPath, code, language, preprocessing = false){
 	// "use strict";
-	var lang = language || constantsModule.LANG.js;
-	var parser = await astparser.getParser(lang);
+	var parser = await astParserCtrl.getOrSetAstParser();
 	var options = null; // fall back to default parser options
 	console.log('[-] parsing script: '+ scriptName);
-	var ast = await astparser.createASTFromSource(code, lang, options);
+	var ast = await astparser.createASTFromSource(code, parser, options);
 	if( !ast )
 	{
 		console.log("[-] exiting CPG generation, as parser error occured.");
@@ -36,7 +36,7 @@ async function initializeModelsFromSource(scriptName, code, language, preprocess
 
 
 	if(preprocessing){
-		let inputScript = scriptName;
+		let inputScript = scriptPath;
 		let outputScript = inputScript.replace(/\.js$/, "") + '.prep.js';
 		
 		let result = await codeProcessor.startPasses(inputScript, ast, outputScript);
@@ -45,7 +45,7 @@ async function initializeModelsFromSource(scriptName, code, language, preprocess
 
 			// change the input to the new processed script
 			ast = result.ast;	
-			scriptName = outputScript;
+			scriptPath = outputScript;
 
 		}
 
@@ -54,8 +54,10 @@ async function initializeModelsFromSource(scriptName, code, language, preprocess
 
 	if(ast && ast.type == "Program"){
 		ast.value = scriptName;
-		ast.kind = lang; // store the lang
+		ast.kind = language; // store the lang
  	}
+
+	// Initialize the AST Tags
     await parser.traverseAST(ast, function(node){
         if(node && node.type){
             let _id = flownodeFactory.count;
@@ -65,7 +67,18 @@ async function initializeModelsFromSource(scriptName, code, language, preprocess
             }
             // This will add a new property "_id" to the AST node
             node._id = _id;
-            flownodeFactory.count= flownodeFactory.count + 1;           
+            flownodeFactory.count= flownodeFactory.count + 1;
+			// Add a new property "_name" to the AST node
+			if(node.type == "FunctionDeclaration") {
+				// For function without Name, we make it func+_id
+				node._name = "func_"+node.id.name;
+			} else if (node.type == "FunctionExpression") {
+				node._name = "func_"+node._id;
+			} else if (node.type == "VariableDeclarator" && node.id.type == "Identifier"){
+				node.id._name = "var+"+node._id;
+			} else {
+				// pass
+			}
         }
     });
     // add ast to scope
