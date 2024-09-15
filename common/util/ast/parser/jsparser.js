@@ -40,8 +40,15 @@ JSParser.prototype.parseAST = function (code, options) {
 	if (!optionObj.loc) {
 		optionObj.loc = true;
 	}
-
-	return esprima.parse(code, optionObj);
+    optionObj.tokens = true;
+    optionObj.tolerant = true;
+    optionObj.comment = true;
+    let delegate = function (node) {
+        // console.log(node.type);
+        // if (node.type === 'FunctionDeclaration') {
+        // }
+    };
+	return esprima.parse(code, optionObj, delegate);
 };
 
 // recursive traversal
