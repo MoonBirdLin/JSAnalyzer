@@ -22,6 +22,7 @@
 - 基于 MPTA 和 Inheritance Analysis 的结果生成 CallGraph
 
 # References
+- [cs-au-dk/jelly](https://github.com/cs-au-dk/jelly)
 - [Swatinem/esgraph](https://github.com/Swatinem/esgraph)
 - [Swatinem/analyses](https://github.com/Swatinem/analyses)
 - [Song-Li/ODGen](https://github.com/Song-Li/ODGen)
@@ -31,3 +32,10 @@
 - [flyboss/MiniTracker](https://github.com/flyboss/MiniTracker)
 - [sukyoung/safe](https://github.com/sukyoung/safe)
 - [KTH-LangSec/silent-spring](https://github.com/KTH-LangSec/silent-spring) (仅包含一个CodeQL的查询Pipeline, 没有程序分析base上的内容)
+
+# Reference Papers
+- [Reducing Static Analysis Unsoundness with Approximate Interpretation](https://dl.acm.org/doi/pdf/10.1145/3656424)
+- [Modular Call Graph Construction for Security Scanning of Node.js Applications](https://dl.acm.org/doi/pdf/10.1145/3460319.3464836)
+- [Indirection-Bounded Call Graph Analysis](https://drops.dagstuhl.de/storage/00lipics/lipics-vol313-ecoop2024/LIPIcs.ECOOP.2024.10/LIPIcs.ECOOP.2024.10.pdf)
+- [Practical Static Analysis of JavaScript Applications in the Presence of Frameworks and Libraries](https://dl.acm.org/doi/pdf/10.1145/2491411.2491417)
+- [JAW: Studying Client-side CSRF with Hybrid Property Graphs and Declarative Traversals](https://www.usenix.org/system/files/sec21-khodayari.pdf)

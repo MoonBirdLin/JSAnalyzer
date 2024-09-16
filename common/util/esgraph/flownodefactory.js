@@ -20,8 +20,8 @@
 
 
 var FlowNode = require('./flownode'),
-    namespace = require('../../../ns/namespace'),
-    internal = namespace();
+    scenaries = require('../../../scenery/scenaries')
+    internal = scenaries();
 
 /**
  * FlowNodeFactory

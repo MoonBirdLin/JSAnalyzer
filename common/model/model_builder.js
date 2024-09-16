@@ -7,7 +7,7 @@ const flownodeFactory = require('../util/esgraph/flownodefactory');
 const astParserCtrl = require('../../scenery/astParserCtrl');
 
 // Define all ast intiialization functions
-function initializeAstCallbacks() {
+function initializeAstCallbacks(...registCallbacks) {
 	let callbacks = [];
 	// Initialize the AST Tags
 	callbacks.push(function(node){
@@ -43,22 +43,40 @@ function initializeAstCallbacks() {
 				case "Program":
                     node._scopeName = node.value;
                     break;
-                // Functions
+                /* Functions can be seen as two new scope
+					** 1. The arguments and this pointers.(belone to the function node itself)
+					** 2. The body of the function.(belone to the body)
+				*/
 				case "FunctionDeclaration":
+					if (node.id) {
+						node._scopeName = "func_"+node.id.name;
+					} else {
+						node._scopeName = "func_"+node._id;
+					}
 					if (node.body && node.body.type == "BlockStatement"){
 						if (node.id) {
-							node.body._scopeName = "func_"+node.id.name;
+							node.body._scopeName = "func_body_"+node.id.name;
 						} else {
-							node.body._scopeName = "func_"+node._id;
+							node.body._scopeName = "func_body_"+node._id;
 						}
 					}
                     break;
                 case "FunctionExpression":
+					if (node.id) {
+						node._scopeName = "func_"+node.id.name;
+					} else {
+						node._scopeName = "func_"+node._id;
+					}
 					if (node.body && node.body.type == "BlockStatement"){
 						node.body._scopeName = "func_"+node._id;
 					}
                     break;
 				case "ArrowFunctionExpression" :
+					if (node.id) {
+						node._scopeName = "func_"+node.id.name;
+					} else {
+						node._scopeName = "func_"+node._id;
+					}
 					if (node.body && node.body.type == "BlockStatement"){
 						node.body._scopeName = "func_"+node._id;
 					} else if (node.body && node.body.type == "ExpressionStatement"){
@@ -84,6 +102,12 @@ function initializeAstCallbacks() {
 				// Control-flow Structures
 				// True-False Branches has different scopes
 				case "IfStatement":
+					if (node.id) {
+						node._scopeName = "if_"+node.id.name;
+					} else {
+						node._scopeName = "if_"+node._id;
+					}
+					// If is a branching statement, so the node itself and branchs have different scope names
 					if (node.consequent){
 						// Create a new block statement for the consequent, if the consequent is not a block statement
 						if (node.consequent.type != "BlockStatement") {
@@ -127,7 +151,14 @@ function initializeAstCallbacks() {
 						node.alternate._scopeName = "if_else_"+node._id;
 					}
 					break;
-				// SwitchCases are the namespaces for a SwitchStatement
+				// SwitchStatement can be seen as a branching statement, so the node itself and branchs have different scope names
+				case "SwitchStatement":
+					if (node.id) {
+						node._scopeName = "switch_"+node.id.name;
+					} else {
+						node._scopeName = "switch_"+node._id;
+					}
+					break;
 				case "SwitchCase" :
 					// Each SwitchCase has its own scope
 					if (node.consequent){
@@ -176,22 +207,30 @@ function initializeAstCallbacks() {
 				case "ClassExpression":
 				case "ClassDeclaration":
 					// Scope name for class's variable prpoperties
-					node._scopeName = "class_"+node._id;
+					if (node.id) {
+						node._scopeName = "class_"+node.id.name;
+					} else {
+						node._scopeName = "class_"+node._id;
+					}
 					// Class Method and Constructor will be a Function
 					break;
 				// Objects
 				case "ObjectExpression" :
 					// Scope name for object's variable prpoperties
-					node._scopeName = "object_"+node._id;
+					if (node.id) {
+						node._scopeName = "object_"+node.id.name;
+					} else {
+						node._scopeName = "object_"+node._id;
+					}
 					// Object Properties will be a ExpressionStatement, i.e. have been covered 
 					break;
 				case "YieldExpression" :
 					node._scopeName = "yield_"+node._id;
 					break;
-				// Other BlockStatements
+				// Other BlockStatements(if a BlockStatement is not a child of a Function/Class/Loop/If/Else/Case, it should has its own scope)
 				case "BlockStatement":
 					if (node._scopeName == null){
-					    node._scopeName = "Uncatched_block_"+node._id;
+					    node._scopeName = "Block_"+node._id;
 					}
 					break;
 				default:
@@ -199,6 +238,15 @@ function initializeAstCallbacks() {
             }
 		}
 	})
+	// Initialize the scopeCtrl
+	// Add user-customized callbacks
+	for (let callback of registCallbacks){
+		if (callback instanceof Function && callback.length == 1){
+			callbacks.push(callback);
+		} else {
+			console.error("[-] RegisterCallbacks contains non-callback element: "+callback);
+		}
+	}
 	return callbacks;
 }
 

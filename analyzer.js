@@ -26,6 +26,7 @@ async function initializeAnalyzer(configPth) {
     let astcontroler = astCtrl.getAstPool();
     await astcontroler.constructAstDir(configData.targetDir);
 
+    // Initialize Namespace
     CONFIG.value = configData;
     return configData;
 }

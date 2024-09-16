@@ -17,8 +17,8 @@
 	FlowNode module
 */
 
-var namespace = require('../../../ns/namespace'),
-    internal = namespace();
+var scenaries = require('../../../scenery/scenaries'),
+    internal = scenaries();
 var Set = require('../worklist/set');
 
 /**
