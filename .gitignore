@@ -18,10 +18,12 @@ input/configs/*
 input/test/*
 !input/configs/.gitkeep
 !input/test/.gitkeep
+!input/test/testCases/*
 
 # outputs and exports
 outputs/*
 !outputs/.gitkeep
+!outputs/test/testCases/*
 exports/*.db
 exports/*.csv
 !exports/.gitkeep

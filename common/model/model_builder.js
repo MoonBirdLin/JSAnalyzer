@@ -74,7 +74,8 @@ function initializeAstCallbacks() {
 						newBlockStatement = {
 							type: "BlockStatement",
 							body: [node.body],
-							_id: new_id
+							_id: new_id,
+							_isAddedBlockStatement: true
 						}
 						node.body = newBlockStatement;
 						node.body._scopeName = "func_"+node._id;
@@ -97,7 +98,8 @@ function initializeAstCallbacks() {
 							newBlockStatement = {
 								type: "BlockStatement",
 								body: [node.consequent],
-								_id: new_id
+								_id: new_id,
+								_isAddedBlockStatement: true
 							}
 							node.consequent = newBlockStatement;
 						}
@@ -117,7 +119,8 @@ function initializeAstCallbacks() {
 							newBlockStatement = {
 								type: "BlockStatement",
 								body: [node.alternate],
-								_id: new_id
+								_id: new_id,
+								_isAddedBlockStatement: true
 							}
 							node.alternate = newBlockStatement;
 						}
@@ -151,7 +154,8 @@ function initializeAstCallbacks() {
 							newBlockStatement = {
 								type: "BlockStatement",
 								body: [node.body],
-								_id: new_id
+								_id: new_id,
+								_isAddedBlockStatement: true
 							}
 							node.body = newBlockStatement;
 						}
