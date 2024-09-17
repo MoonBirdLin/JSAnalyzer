@@ -89,7 +89,7 @@ async function initializeModelsFromSource(scriptName, scriptPath, code, language
 				switch (node.type) {
 					// Root node of a file
 					case "Program":
-						node._scopeName = node.value;
+						node._scopeName = node.value.replace(/\.js$/, "").replace(/^[\/|\\]+/, "");
 						break;
 					/* Functions can be seen as two new scope
 						** 1. The arguments and this pointers.(belone to the function node itself)
