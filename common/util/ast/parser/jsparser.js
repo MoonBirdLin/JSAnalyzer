@@ -40,9 +40,9 @@ JSParser.prototype.parseAST = function (code, options) {
 	if (!optionObj.loc) {
 		optionObj.loc = true;
 	}
-    optionObj.tokens = true;
-    optionObj.tolerant = true;
-    optionObj.comment = true;
+    // optionObj.tokens = true;
+    // optionObj.tolerant = true;
+    // optionObj.comment = true;
     let delegate = function (node) {
         // console.log(node.type);
         // if (node.type === 'FunctionDeclaration') {
@@ -65,6 +65,28 @@ JSParser.prototype.traverseAST = function traverse(node, func) {
                     }
                 } else {
                     traverse(child, func); //6
+                }
+            }
+        }
+    }
+}
+
+JSParser.prototype.traverseASTWithFlag = function traverseWithFlag(node, func) {
+    let flag = func(node);//1
+    if (flag) {
+        return;
+    }
+    for (var key in node) { //2
+        if (node.hasOwnProperty(key)) { //3
+            var child = node[key];
+            if (typeof child === 'object' && child !== null) { //4
+
+                if (Array.isArray(child)) {
+                    for(let node of child){ //5
+                        traverseWithFlag(node, func);  
+                    }
+                } else {
+                    traverseWithFlag(child, func); //6
                 }
             }
         }

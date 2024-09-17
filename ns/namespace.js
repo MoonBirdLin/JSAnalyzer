@@ -37,7 +37,7 @@ class NamespaceNode {
         return this.parent;
     }
     setParent(parent){
-        if (this.parent != parent){
+        if (this.parent != null && this.parent != parent){
             console.warn("You are trying to changing the parant. Parent of " + this.spaceName + " is already set: " + JSON.stringify(this.parent, null, 0));
         }
         this.parent = parent;
@@ -91,8 +91,13 @@ class NamespaceCtrl{
         }
         return this.namespacePool.get(astNode);
     }
+
     hasNameSpace(astNode){
         return this.namespacePool.has(astNode);
+    }
+
+    getNameSpacePool(){
+        return this.namespacePool;
     }
 }
 

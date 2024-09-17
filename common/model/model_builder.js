@@ -10,6 +10,7 @@ const namespace = require('../../ns/namespace');
 const pointerCtrl = require('../../pta/pointerCtrl');
 const objectCtrl = require('../../pta/objectCtrl');
 const contextCtrl = require('../../pta/contextCtrl');
+const renameCtrl = require('../../ns/renameCtrl');
 
 /**
  * Initializes the parse tree with unique node IDs
@@ -272,6 +273,24 @@ async function initializeModelsFromSource(scriptName, scriptPath, code, language
 						}
 						// Object Properties will be a ExpressionStatement, i.e. have been covered 
 						break;
+					// Methods
+					case "MethodDefinition" :
+						// Scope name for object's variable prpoperties
+						if (node.key && node.key.type && node.key.type == "Identifier") {
+							if (node.static) {
+								node._scopeName = "method_static_def_"+node.key.name;
+							} else {
+								node._scopeName = "method_def_"+node.key.name;
+							}
+						} else {
+							if (node.static) {
+								node._scopeName = "method_static_def_"+node._id;
+							} else {
+								node._scopeName = "method_def_"+node._id;
+							}
+						}
+						// Object Properties will be a ExpressionStatement, i.e. have been covered 
+						break;
 					case "YieldExpression" :
 						node._scopeName = "yield_"+node._id;
 						break;
@@ -370,7 +389,7 @@ async function initializeScopeAndNamespace(ast) {
 					parentSpaceName = namespaceController.getNameSpace(parentScopeAstNode).getSpaceName();
 				}
 				let currScopeName = scopeNode.getScopeName();
-				let spaceName = parentSpaceName ? parentSpaceName + "::" + currScopeName : currScopeName;
+				let spaceName = parentSpaceName ? parentSpaceName + "$$" + currScopeName : currScopeName;
 				namespaceNode.setSpaceName(spaceName);
 			}
 			// Update global variable
@@ -390,6 +409,194 @@ async function initializeScopeAndNamespace(ast) {
 	});
 }
 
+/**
+ * Rename all varaibles with namespaces
+ * @returns {void}
+ */
+async function renameVariables() {
+	// Namespace controllor
+	const namespaceController = namespace.NamespaceController;
+	// Rename controllors
+	const renameControllor = renameCtrl.RenameControllor;
+	// const namespaceUsingObjects = renameCtrl.NamespaceUsingObjects;
+	const namespaceUsingPointers = renameCtrl.NamespaceUsingPointers;
+	// const namespaceDefObjects = renameCtrl.NamespaceDefObjects;
+	const namespaceDefPointers = renameCtrl.NamespaceDefPointers;
+	const nameMap = renameCtrl.NameMap;
+	// AST parser
+	var parser = await astParserCtrl.getOrSetAstParser();
+
+	// Initialize the used and defined of each namespace
+	for (const [astNode, namespaceNode] of namespaceController.getNameSpacePool()) {
+		// Define
+		parser.traverseASTWithFlag(astNode, function(node){
+			// usage functions:
+			function parsePattern(node, originNode) {
+				parser.traverseASTWithFlag(node, function(node){
+					switch (node.type) {
+						case "Identifier" : {
+							namespaceDefPointers.addPointer(namespaceNode, node.name, node);
+							break;
+						}
+						case "ObjectPattern" : {
+							// go into sub-nodes
+							break;
+						}
+						case "ArrayPattern" : {
+							// go into sub-nodes
+							break;
+						}
+						case "AssignmentPattern" : {
+							// Process left only
+							let leftVar = node.left;
+							parseParam(leftVar, originNode);
+							// sub-nodes has been processed
+							return true;
+						}
+						case "RestElement" : {
+							// go into sub-nodes
+							break;
+						}
+						case "Property" : {
+							// Process value only
+							let value = node.value;
+							parseParam(value, originNode);
+							// sub-nodes has been processed
+							return true;
+						}
+						default:
+							break;
+					}
+					return false;
+				});
+			}
+			function parseParam(node, originNode) {
+				if (node && node.type && node.type == "Identifier") {
+					namespaceDefPointers.addPointer(namespaceNode, node.name, originNode);
+				} else {
+					parsePattern(node, originNode);
+				}
+			}
+			if (node && node.type){
+				switch (node.type) {
+					// Normal Declaration
+					case "VariableDeclarator" :{
+						let declId = node.id;
+						if (declId) parsePattern(declId, node);
+						// Sub-nodes has been processed
+						return true;
+					}
+					// For a function
+					case "FunctionExpression" : 
+					case "ArrowFunctionExpression":
+					case "FunctionDeclaration" :{
+						// Function define
+						let declId = node.id;
+						if (declId && declId.type && declId.type == "Identifier") {
+							namespaceDefPointers.addPointer(namespaceNode, "funcDecl_"+declId.name, node);
+						} else {
+							if (declId != null) {
+								namespaceDefPointers.addPointer(namespaceNode, "funcDecl_"+declId._id, node);
+							}
+						}
+						if (node._scopeName && node != astNode) {
+							// In a new scope
+							return true;
+						}
+						// current function args define
+						for (const param of node.params) {
+						    parseParam(param, node)
+						}
+						// Sub-nodes has been processed
+						return true;
+					}
+					// For an object
+					case "ObjectExpression" : {
+						// an object cannot become a pointer
+						if (node._scopeName && node != astNode){
+							// In a new scope
+							return true;
+						}
+						break;
+					}
+					// For a class
+					case "ClassExpression":
+					case "ClassDeclaration": {
+						if (node._scopeName && node != astNode) {
+							// In a new scope
+							// class define
+							let declId = node.id;
+							if (declId && declId.type && declId.type == "Identifier") {
+								namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId.name, node);
+							} else {
+								namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId._id, node);
+							}
+							return true;
+						}
+						if (node == astNode) 
+							return false;
+					}
+					// For a method definition
+					case "MethodDefinition":
+						// Function define
+						let declId = node.key;
+						if (declId && declId.type && declId.type == "Identifier") {
+							namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+declId.name, node);
+						} else {
+							if (declId != null) {
+								namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+declId._id, node);
+							} else {
+								namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+node._id, node);
+							}
+						}
+						if (node._scopeName && node != astNode) {
+							// In a new scope
+							return true;
+						}
+						// Sub-nodes has been processed
+						return true;
+					default:
+						break;
+				}
+			}
+			return false;
+		});
+		// Use
+		// let testing = new Set();
+		parser.traverseASTWithFlag(astNode, function(node){
+			function parseCases(node, originNode) {
+				switch (node.type) {
+					case "Identifier" :{
+						// All using will be an Identifier
+						namespaceUsingPointers.addPointer(namespaceNode, node.name, originNode);
+						return true;
+					}
+					case "ThisExpression" : {
+						namespaceUsingPointers.addPointer(namespaceNode, "this", originNode);
+						return true;
+					}
+					case "MemberExpression" : {
+						// only process object without property
+						parseCases(node.object, originNode)
+						return true;
+					}
+					default :
+						break;
+				}
+				return false;
+			}
+			if (node && node.type){
+				if (node._scopeName && node != astNode) {
+					return true;
+				}
+				return parseCases(node, node);
+			}
+			return false;
+		});
+	}
+	// Rename all variables & objects
+}
+
 function dumpAst(ast, outputFile) {
 	"use strict"
     fs.writeFileSync(outputFile, JSON.stringify(ast, null, 4), 'utf8');
@@ -398,5 +605,6 @@ function dumpAst(ast, outputFile) {
 module.exports = {
     initializeModelsFromSource: initializeModelsFromSource,
 	initializeScopeAndNamespace: initializeScopeAndNamespace,
+	renameVariables:renameVariables,
 	dumpAst: dumpAst,
 };

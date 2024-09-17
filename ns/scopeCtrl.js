@@ -35,7 +35,7 @@ class ScopeNode {
         return this.parent;
     }
     setParent(parent){
-        if (this.parent != parent){
+        if (this.parent != null && this.parent != parent){
             console.warn("You are trying to changing the parant. Parent of " + this.scopeName + " is already set: " + JSON.stringify(this.parent, null, 0));
         }
         this.parent = parent;
