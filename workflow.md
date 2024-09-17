@@ -11,6 +11,11 @@
   - 由于测试用例来自微信 miniapp 以及 nodejs 工程, 优先实现 CommonJS Module 的模块化
 
 ## NameSpace Analysis
+- 工作节点
+  - [x] Scope 管理器
+  - [x] NameSpace 管理器
+  - [ ] 对象/变量重命名管理器
+  - [ ] 指针/对象初始化
 - 一些设计思路
   - 思路
     - 整个NameSpace管理分为三块: 作用域 Scope 管理, NameSpace 关系管理, 对象/变量重命名管理
