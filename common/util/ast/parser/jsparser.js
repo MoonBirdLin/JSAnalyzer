@@ -71,6 +71,26 @@ JSParser.prototype.traverseAST = function traverse(node, func) {
     }
 }
 
+JSParser.prototype.traverseASTWithEnterAndExit = function traverseWithEnterAndExit(node, enter, exit){
+    enter(node);//1
+    for (var key in node) { //2
+        if (node.hasOwnProperty(key)) { //3
+            var child = node[key];
+            if (typeof child === 'object' && child !== null) { //4
+
+                if (Array.isArray(child)) {
+                    for(let node of child){ //5
+                        traverseWithEnterAndExit(node, enter, exit);  
+                    }
+                } else {
+                    traverseWithEnterAndExit(child, enter, exit); //6
+                }
+            }
+        }
+    }
+    exit(node);
+}
+
 // @thanks to: https://github.com/jrajav/esprima-walk/blob/master/esprima-walk.js
 // iterative traversal
 JSParser.prototype.itraverseAST = function(ast, func){

@@ -42,8 +42,27 @@ class AstPool {
         // let scriptName = astPath.replace('.js', '').split('/').pop();
         let scriptName = astPath.replace(rootPth, "");
         let code = SourseReader.getSourceFromFile(astPath);
+        // Initialize 
         let ast = await moduleBuilder.initializeModelsFromSource(scriptName, astPath, code, config, false);
         await this.addAst(ast, scriptName);
+        // Initialize Scope and Namespace
+        await moduleBuilder.initializeScopeAndNamespace(ast);
+
+        // Initialize the OriginPointerAstNodeContainer & OriginObjectAstNodeContainer
+        // callbacks.push(function(node, parser){
+        //     if(node && node.type && node._scopeName){
+        // 		let OPANC = pointerCtrl.OriginPointerAstNodeContainer;
+        // 		let OOANC = objectCtrl.OriginObjectAstNodeContainer;
+        // 		parser.traverseAST(node, function(node){
+        // 			if(node && node.type){
+                        
+        // 			}
+        // 		});
+        // 	}
+        // })
+        // Initialize Objects
+
+        // Initialize Pointers
     }
 
     // Construct All JS into ASTs from a directory

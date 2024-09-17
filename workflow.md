@@ -63,6 +63,16 @@
   - 实现思路暂时不知道, 可能会GPT辅助先写一个简单版本
   - 难点: 要考虑prototype变更的情况...因此一个类/接口可能继承自多个类/接口
 
+## Poninter Context
+- MPTA Requirement:
+  - 由于存在this指针分析难题, 按说需要一个 Object Context, 但是这又回到了死循环之中(分析指针->分析上下文->分析对象->分析指针), 且我们在进行MPTA的时候缺少一个基本的Object分析事实
+  - 具体怎么搞还得再思考一下
+  - ~~注意, 第一次执行MPTA的时候, 无法使用任何上下文, 因为此时还没有创建任何CallGraph~~
+  - ~~因此我们使用一个 tradeoff, 即在分析MPTA时使用长度为1的Callsite上下文, 虽然这样this指针分析的对象会不准确, 但避免了粗糙的Object分析事实带来的精度损失~~
+    - ~~长度为1的Callsite上下文的优势: 可以实现预计算, 赋予新上下文时, 不涉及当前函数所处调用链状态, 仅和当前所属函数相关;~~
+- PTA Requirement:
+  - 暂时不考虑, 沿用长度为1的Callsite上下文
+
 ## MPTA(Method Pointer Analysis)
 - MPTA: 分析函数指针, 生成函数对象指向关系图
 - 设计理念理念来自于 Java 中的反射机制

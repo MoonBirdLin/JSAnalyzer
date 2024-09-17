@@ -26,9 +26,34 @@ async function initializeAnalyzer(configPth) {
     let astcontroler = astCtrl.getAstPool();
     await astcontroler.constructAstDir(configData.targetDir);
 
-    // Initialize Namespace
     CONFIG.value = configData;
     return configData;
+}
+
+async function runMPTA() {
+    // Run MPTA, to construct the basic callsite
+
+}
+
+async function runBasicCG() {
+    // Construct basic call graph
+}
+
+async function runPTA() {
+    /**
+    **TODO : PTA
+        **TODO : Context-sensitive Analysis
+    **/
+}
+
+async function runPTAEnhancedCG() {
+    /**
+    **TODO : PTA-enhanced Call Graph
+    **/
+}
+
+async function analyze() {
+    // TODO : Dataflow Analysis
 }
 
 let CONFIG = {
@@ -38,4 +63,9 @@ let CONFIG = {
 module.exports = {
     initializeAnalyzer: initializeAnalyzer,
     CONFIG: CONFIG,
+    runMPTA: runMPTA,
+    runBasicCG: runBasicCG,
+    runPTA: runPTA,
+    runPTAEnhancedCG: runPTAEnhancedCG,
+    analyze: analyze
 }
