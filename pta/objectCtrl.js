@@ -115,6 +115,9 @@ class ObjectCtrl {
         this.objectMap.set(objectName, new ObjectNode(objectName, allocAstNode, type, prototypeNode, contextInstance, isPrototype));
     }
     getObject(objectName) {
+        if (!this.objectMap.has(objectName)) {
+            return null;
+        }
         return this.objectMap.get(objectName);
     }
     removeObject(objectName) {
@@ -141,6 +144,9 @@ class OriginObjectAstNodeContainer {
         this.objectPool.get(spaceName).add(objectAstNode);
     }
     getObjects(spaceName){
+        if (!this.hasPointers(spaceName)) {
+            return new Set();
+        }
         return this.objectPool.get(spaceName);
     }
 }

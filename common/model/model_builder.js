@@ -242,9 +242,12 @@ async function initializeModelsFromSource(scriptName, scriptPath, code, language
 							node.body._scopeName = "loop_body_"+node._id;
 						}
 						break;
-					// Try-Catch-Finally has different scopes for itself and its body
+					// Try contains the parent-scope of Try-catch-finally
+					// Catch-Finally has different scopes for itself and its body
 					case "TryStatement":
-						node.block._scopeName = "try_"+node._id;
+						node._scopeName = "try_"+node._id;
+						// node.block._scopeName = "try_"+node._id;
+						node.block._isTryBlock = true;
 						if (node.finalizer) {
 							node.finalizer._scopeName = "finally_"+node._id;
 						}
@@ -296,7 +299,7 @@ async function initializeModelsFromSource(scriptName, scriptPath, code, language
 						break;
 					// Other BlockStatements(if a BlockStatement is not a child of a Function/Class/Loop/If/Else/Case, it should has its own scope)
 					case "BlockStatement":
-						if (node._scopeName == null){
+						if (!node._isTryBlock && node._scopeName == null){
 							node._scopeName = "Block_"+node._id;
 						}
 						break;
@@ -318,7 +321,12 @@ async function initializeModelsFromSource(scriptName, scriptPath, code, language
 				let scopeNode = scopeCtrl.ScopeController.getScope(node);
 				// The namespace is initialized without name
 				// The name will be conputed in Scope Tree traversal
-				namespace.NamespaceController.addNameSpace(node, new namespace.NamespaceNode(undefined, node, scopeNode, null, new Set()));
+				let newNameSpace = new namespace.NamespaceNode(undefined, node, scopeNode, null, new Set());
+				namespace.NamespaceController.addNameSpace(node, newNameSpace);
+				// Add Root Namespaces
+				if (node.type == "Program") {
+					namespace.NamespaceController.addRootNameSpace(newNameSpace);
+				}
 			}
 		})
 		// Add user-customized callbacks
@@ -418,25 +426,39 @@ async function renameVariables() {
 	const namespaceController = namespace.NamespaceController;
 	// Rename controllors
 	const renameControllor = renameCtrl.RenameControllor;
-	// const namespaceUsingObjects = renameCtrl.NamespaceUsingObjects;
 	const namespaceUsingPointers = renameCtrl.NamespaceUsingPointers;
-	// const namespaceDefObjects = renameCtrl.NamespaceDefObjects;
 	const namespaceDefPointers = renameCtrl.NamespaceDefPointers;
 	const nameMap = renameCtrl.NameMap;
+	const nameSpaceRenameCtrl = renameCtrl.NameSpaceRenameCtrl
 	// AST parser
 	var parser = await astParserCtrl.getOrSetAstParser();
 
 	// Initialize the used and defined of each namespace
+	let classOrObjectFields = new Set();
+	let classOrObjectMethods = new Set();
+	let shouldNotBeRenamed = new Set();
 	for (const [astNode, namespaceNode] of namespaceController.getNameSpacePool()) {
 		// Define
 		parser.traverseASTWithFlag(astNode, function(node){
 			// usage functions:
 			function parsePattern(node, originNode) {
+				// Baisic Pattern: BindingPattern(ArrayPattern | ObjectPattern), AssignmentPattern
+				// Recursion ending : Indentifier
+				/* Special Types:
+					1. RestElement : For ArrayPattern (ArrayPatternElement can be AssignmentPattern | Identifier | BindingPattern | RestElement | null)
+					2. Property : For ObjectPattern (ObjectPattern contains properties which are Property)
+				*/
+				/* 
+				There are two ways to run recursion:
+					1. Recursion with traverseASTWithFlag API, just traverse the ast, and stop on some node
+					2. Actively call parsePattern on some special node and it's sub-nodes (such as AssignmentPattern should only traverse the left node only)
+				*/
 				parser.traverseASTWithFlag(node, function(node){
 					switch (node.type) {
 						case "Identifier" : {
-							namespaceDefPointers.addPointer(namespaceNode, node.name, node);
-							break;
+							namespaceDefPointers.addPointer(namespaceNode, node.name, node, node);
+							// break;
+							return true;
 						}
 						case "ObjectPattern" : {
 							// go into sub-nodes
@@ -472,7 +494,7 @@ async function renameVariables() {
 			}
 			function parseParam(node, originNode) {
 				if (node && node.type && node.type == "Identifier") {
-					namespaceDefPointers.addPointer(namespaceNode, node.name, originNode);
+					namespaceDefPointers.addPointer(namespaceNode, node.name, originNode, node);
 				} else {
 					parsePattern(node, originNode);
 				}
@@ -480,9 +502,20 @@ async function renameVariables() {
 			if (node && node.type){
 				switch (node.type) {
 					// Normal Declaration
-					case "VariableDeclarator" :{
-						let declId = node.id;
-						if (declId) parsePattern(declId, node);
+					case "VariableDeclaration" :{
+						for (decl of node.declarations){
+							if (decl && decl.type == "VariableDeclarator"){
+								let declId = decl.id;
+								if (declId) parsePattern(declId, node);
+							}
+						}
+						// Sub-nodes has been processed
+						return true;
+					}
+					// For a catch
+					case "CatchClause" : {
+						let param = node.param;
+						if (param) parseParam(param, node);
 						// Sub-nodes has been processed
 						return true;
 					}
@@ -493,10 +526,10 @@ async function renameVariables() {
 						// Function define
 						let declId = node.id;
 						if (declId && declId.type && declId.type == "Identifier") {
-							namespaceDefPointers.addPointer(namespaceNode, "funcDecl_"+declId.name, node);
+							namespaceDefPointers.addPointer(namespaceNode, "funcDecl_"+declId.name, node, node);
 						} else {
 							if (declId != null) {
-								namespaceDefPointers.addPointer(namespaceNode, "funcDecl_"+declId._id, node);
+								namespaceDefPointers.addPointer(namespaceNode, "funcDecl_"+declId._id, node, node);
 							}
 						}
 						if (node._scopeName && node != astNode) {
@@ -517,6 +550,13 @@ async function renameVariables() {
 							// In a new scope
 							return true;
 						}
+						for (const nnode of node.properties) {
+							if (nnode.type == "Property") {
+								classOrObjectFields.add(nnode);
+							} else {
+								classOrObjectMethods.add(nnode);
+							}
+						}
 						break;
 					}
 					// For a class
@@ -527,26 +567,51 @@ async function renameVariables() {
 							// class define
 							let declId = node.id;
 							if (declId && declId.type && declId.type == "Identifier") {
-								namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId.name, node);
+								namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId.name, node, node);
 							} else {
-								namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId._id, node);
+								namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId._id, node, node);
 							}
 							return true;
 						}
 						if (node == astNode) 
 							return false;
 					}
+					case "ClassBody" : {
+						for (const nnode of node.body) {
+							if (nnode.type == "Property") {
+								classOrObjectFields.add(nnode);
+							} else {
+								classOrObjectMethods.add(nnode);
+							}
+						}
+						break;
+					}
+					// There is some special cases of Property
+						// Classes' fields will be a Property node
+						// Objects' properties will be a Property node
+					case "Property": {
+						// Parse class or object fields
+						if (!classOrObjectFields.has(node)) {
+							return true;
+						}
+						if (node.key && node.key.type && node.key.type == "Identifier"){
+							parsePattern(node.key, node);
+							return true;
+						}
+						// go into sub-nodes
+						break;
+					}
 					// For a method definition
 					case "MethodDefinition":
-						// Function define
+						// Method define
 						let declId = node.key;
 						if (declId && declId.type && declId.type == "Identifier") {
-							namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+declId.name, node);
+							namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+declId.name, node, node);
 						} else {
 							if (declId != null) {
-								namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+declId._id, node);
+								namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+declId._id, node, node);
 							} else {
-								namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+node._id, node);
+								namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+node._id, node, node);
 							}
 						}
 						if (node._scopeName && node != astNode) {
@@ -555,37 +620,73 @@ async function renameVariables() {
 						}
 						// Sub-nodes has been processed
 						return true;
-					default:
+					default:{
+						// Important! The use and define are for each scope
+						if (node._scopeName && node != astNode) {
+							// In a new scope
+							return true;
+						}
 						break;
+					}
 				}
 			}
 			return false;
 		});
 		// Use
-		// let testing = new Set();
+		// The class methods and fields cannot be renamed
+		// The object properties cannot be renamed
+		for (const nnode of classOrObjectFields) {
+			// parser.traverseAST(nnode, function (node){
+			// 	switch (node.type) {
+			// 		case "Identifier" :
+			// 		case "MethodDefinition":
+			// 		{
+			// 		    shouldNotBeRenamed.add(node);
+			// 			break;
+			// 		}
+			// 		default:
+			// 			break;
+			// 	}
+			// });
+			shouldNotBeRenamed.add(nnode);
+		}
+		for (const nnode of classOrObjectMethods) {
+			shouldNotBeRenamed.add(nnode.key.name);
+		}
 		parser.traverseASTWithFlag(astNode, function(node){
 			function parseCases(node, originNode) {
 				switch (node.type) {
 					case "Identifier" :{
 						// All using will be an Identifier
-						namespaceUsingPointers.addPointer(namespaceNode, node.name, originNode);
+						namespaceUsingPointers.addPointer(namespaceNode, node.name, originNode, node);
 						return true;
 					}
 					case "ThisExpression" : {
-						namespaceUsingPointers.addPointer(namespaceNode, "this", originNode);
+						namespaceUsingPointers.addPointer(namespaceNode, "this", originNode, node);
 						return true;
 					}
 					case "MemberExpression" : {
 						// only process object without property
+						// the field cannot be renamed for it's related to object
 						parseCases(node.object, originNode)
 						return true;
 					}
-					default :
+					default : {
+						if (shouldNotBeRenamed.has(node)) {
+							return true;
+						}
+						// Important! The use and define are for each scope
+						if (node._scopeName && node != astNode) {
+							// In a new scope
+							return true;
+						}
 						break;
+					}
 				}
 				return false;
 			}
 			if (node && node.type){
+				// Important! The use and define are for each scope
 				if (node._scopeName && node != astNode) {
 					return true;
 				}
@@ -594,7 +695,60 @@ async function renameVariables() {
 			return false;
 		});
 	}
-	// Rename all variables & objects
+	// Construct NameSpaceRenameCtrl with Namespace Tree
+	for (const rootNameSpace of namespaceController.getRootNameSpaces()){
+		let queue = new Array();
+		queue.push(rootNameSpace);
+		while (queue.length > 0) {
+			let namespaceNode = queue.shift();
+			let defPointers = namespaceDefPointers.getPointers(namespaceNode);
+			if (!namespaceNode.hasParent()) {
+				// root namespace
+				for (const defPointer of defPointers) {
+					const newName = namespaceDefPointers.makeNewName(namespaceNode, defPointer);
+					nameSpaceRenameCtrl.addNamespace(namespaceNode, defPointer.pointer, newName);
+				}
+			} else {
+			    const parentNameSpace = namespaceNode.getParent();
+				// Copy all pointerNames from parent
+				// Todo: This is a memory for run time performance strategy. Maybe can be optized with pre-computed potentially used pointer.
+				for (const [oldName, newName] of nameSpaceRenameCtrl.getNamespace(parentNameSpace)) {
+					nameSpaceRenameCtrl.addNamespace(namespaceNode, oldName, newName)
+				}
+				// Update all pointer name as current Namespace's pointer name
+				for (const defPointer of defPointers) {
+				    const newName = namespaceDefPointers.makeNewName(namespaceNode, defPointer);
+					nameSpaceRenameCtrl.addNamespace(namespaceNode, defPointer.pointer, newName);
+				}
+			}
+			
+			for (const child of namespaceNode.children) {
+				queue.push(child);
+			}
+		}
+	}
+	// Rename all variables
+	// We can use a asynchronous method to rename all variables, since we have computed all name mapping in each namespace node
+	function constructOneNamespace(nameSpaceNode) {
+		return new Promise(async function (resolve, reject){
+		    try {
+				// let pointers = namespaceUsingPointers.getPointers(nameSpaceNode);
+				for (const usingPointers of namespaceUsingPointers.getPointers(nameSpaceNode)) {
+					await renameControllor.renameOnePointer(nameSpaceNode, usingPointers);
+				}
+				resolve();
+			} catch (e) {
+				console.error(e);
+			}
+
+		})
+	}
+	let promiseList = new Array();
+	for (const namespaceNode of namespaceController.getAllNameSpaces()){
+	    promiseList.push(constructOneNamespace(namespaceNode));
+	}
+	await Promise.all(promiseList);
+
 }
 
 function dumpAst(ast, outputFile) {

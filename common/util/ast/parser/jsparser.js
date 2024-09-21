@@ -17,6 +17,7 @@
  */
 // var esprima = require('esprima');
 var esprima = require('esprima-next');
+var escodegen = require('escodegen');
 
 /**
  * JS  parser
@@ -159,6 +160,10 @@ JSParser.prototype.traverseAddParent = function (ast, fn){
     }
 }
 
+// BTW : escodegen cannot support some features, such as static fields "static x = 10" will be construct to "x:10"
+JSParser.prototype.genJsCode = function(ast){
+    return escodegen.generate(ast);
+}
 /* end-public-methods */
 
 var parser = new JSParser();

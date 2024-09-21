@@ -186,6 +186,9 @@ class OriginPointerAstNodeContainer {
         this.pointerPool.get(spaceName).add(pointerAstNode)
     }
     getPointers(spaceName){
+        if (!this.hasPointers(spaceName)) {
+            return new Set();
+        }
         return this.pointerPool.get(spaceName);
     }
 }

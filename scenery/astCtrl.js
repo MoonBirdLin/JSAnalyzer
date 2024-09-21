@@ -30,9 +30,15 @@ class AstPool {
     }
 
     getAst(astName) {
+        if (!this.hasAst(astName)) {
+            return null;
+        }
         return this.pool.get(astName);
     }
 
+    hasAst(astName) {
+        return this.pool.has(astName);
+    }
     deleteAst(astName) {
         this.pool.delete(astName);
     }
@@ -80,6 +86,16 @@ class AstPool {
         let mapObj = new Map();
         for (let [astName, ast] of this.pool) {
             mapObj.set(astName, JSON.stringify(ast, null, 4));
+        }
+        return mapObj;
+    }
+
+    dumpAstPoolAst() {
+        // let mapObj = Object.fromEntries(this.pool);
+        // return JSON.stringify(mapObj, null, 4)
+        let mapObj = new Map();
+        for (let [astName, ast] of this.pool) {
+            mapObj.set(astName, ast);
         }
         return mapObj;
     }
