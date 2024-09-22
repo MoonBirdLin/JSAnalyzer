@@ -12,23 +12,32 @@ async function processModule(ast, currModuleName){
     let parser = await astParserCtrl.getOrSetAstParser();
     parser.traverseAST(ast, function (node) {
         // Find all require statements
-        if (node.type === 'CallExpression' && node.callee.name === 'require') {
-            const moduleName = node.arguments[0].value; // 获取 require 的模块名称
-            imports.push(moduleName);
+        if (node.type === 'CallExpression') {
+            const calleeName = node.callee.name;
+            if (calleeName) {
+                const arr = calleeName.split('$$');
+                if (arr[arr.length - 1] == 'require'){
+                    const moduleName = node.arguments[0].value; // 获取 require 的模块名称
+                    imports.push(moduleName);
+                }
+            }
         }
 
         // 查找 module.exports 语句
         if (node.type === 'AssignmentExpression' &&
-            node.left.object &&
-            node.left.object.name === 'module' &&
-            node.left.property.name === 'exports') {
-                if (node.right.type === 'Identifier') {
-                    exports.push(currModuleName+'$$Variable$$'+node.right.name); // 记录导出的对象
-                } else if (node.right.type === 'FunctionExpression' || node.right.type === 'ArrowFunctionExpression') {
-                    exports.push(currModuleName+'$$function$$'+String(node.right._id)); // 记录导出的函数
-                } else {
-                    exports.push(currModuleName+'$$uncatched_object$$'+String(node.id)); // 记录导出的非函数对象
+            node.left.object && node.left.object.name && node.left.property && node.left.property.name
+            ) {
+                let arr = node.left.object.name.split('$$');
+                if (arr[arr.length - 1] === 'module' && node.left.property.name === 'exports') {
+                    if (node.right.type === 'Identifier') {
+                        exports.push(currModuleName+'$$Variable$$'+node.right.name); // 记录导出的对象
+                    } else if (node.right.type === 'FunctionExpression' || node.right.type === 'ArrowFunctionExpression') {
+                        exports.push(currModuleName+'$$function$$'+String(node.right._id)); // 记录导出的函数
+                    } else {
+                        exports.push(currModuleName+'$$uncatched_object$$'+String(node.id)); // 记录导出的非函数对象
+                    }
                 }
+                
             }
         }
     );
