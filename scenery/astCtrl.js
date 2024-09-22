@@ -54,19 +54,8 @@ class AstPool {
         // Initialize Scope and Namespace
         await moduleBuilder.initializeScopeAndNamespace(ast);
         // Rename the variables
-        await moduleBuilder.renameVariables();
-        // Initialize the OriginPointerAstNodeContainer & OriginObjectAstNodeContainer
-        // callbacks.push(function(node, parser){
-        //     if(node && node.type && node._scopeName){
-        // 		let OPANC = pointerCtrl.OriginPointerAstNodeContainer;
-        // 		let OOANC = objectCtrl.OriginObjectAstNodeContainer;
-        // 		parser.traverseAST(node, function(node){
-        // 			if(node && node.type){
-                        
-        // 			}
-        // 		});
-        // 	}
-        // })
+        await moduleBuilder.renameVariables(ast);
+
         // Initialize Objects
 
         // Initialize Pointers

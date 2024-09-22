@@ -17,6 +17,10 @@
   - [ ] 对象/变量重命名管理器
     - [x] 基本功能
     - [x] 未定义但是使用的变量默认在root被定义
+    - [x] this 指针定义 & 使用
+    - [x] 对象/类的各种 properties 的定义 & 使用不重命名
+      - 定义: 定义对应的AST节点不进行重命名
+      - 使用: 使用对应的AST节点一定是以this.xxx或者Class.xxx, 因此重命名只需要重命名对应的this/Class节点
     - [ ] var变量特性
   - [ ] 指针/对象初始化
 - 一些设计思路
@@ -72,9 +76,10 @@
     - Java: [class name]((None) | \$\$[method name])
     - JavaScript: [js file name](\$\$[(class name) | (object name) | (method name)])*
 - var 变量重命名
-  - 思路:
+  - 思路: 完全构建每一个namespace的def和use变量后, 实现一个作用域提升, 将var变量提升到函数级作用域, 并将每一个var变量的非函数级定义是为使用(即从def中删除)
     1. 从 AST 角度, var变量仅可在VariableDeclaration
     2. 从代码作用域角度, var变量仅存在函数级和模块级作用域
+    3. 综上, 可以从每一个被定义类型为var的变量, 更新其作用域, 自底向上搜索到第一个
   - 实现
 
 ## Class Heritance Analysis

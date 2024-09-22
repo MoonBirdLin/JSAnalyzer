@@ -55,8 +55,13 @@ class NameSpaceRenameCtrl {
     hasNamespace(namespaceNode) {
         return this.nsRenamePool.has(namespaceNode);
     }
-    async getNamespaceMappingInstance(namespaceNode, oldName) {
-        return this.nsRenamePool.get(namespaceNode).get(oldName);
+    getNamespaceMappingInstance(namespaceNode, oldName) {
+        try {
+            return this.nsRenamePool.get(namespaceNode).get(oldName);
+        } catch (e) {
+            // console.error("Error: namespace "+namespaceNode.getSpaceName()+" does not have "+oldName);
+            return oldName;
+        }
     }
 }
 
@@ -150,7 +155,7 @@ class RenameCtrl {
                     if (node.id != null) {
                         node.id.name = newname;
                     } else {
-                        node.id = {
+                        node._rename = {
                             type: 'Identifier',
                             name: newname
                         }
@@ -158,10 +163,12 @@ class RenameCtrl {
                     break;
                 }
                 case 'ThisExpression': {
-                    node._id = {
-                        type: 'Identifier',
-                        name: newname
-                    };
+                    // node._rename = {
+                    //     type: 'Identifier',
+                    //     name: newname
+                    // };
+                    node.type = 'Identifier';
+                    node.name = newname;
                     break;
                 }
                 default:

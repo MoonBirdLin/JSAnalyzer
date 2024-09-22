@@ -90,7 +90,7 @@ async function initializeModelsFromSource(scriptName, scriptPath, code, language
 				switch (node.type) {
 					// Root node of a file
 					case "Program":
-						node._scopeName = node.value.replace(/\.js$/, "").replace(/^[\/|\\]+/, "");
+						node._scopeName = node.value.replace(/\.js$/, "").replace("\\", "_").replace("/", "_");
 						break;
 					/* Functions can be seen as two new scope
 						** 1. The arguments and this pointers.(belone to the function node itself)
@@ -421,7 +421,7 @@ async function initializeScopeAndNamespace(ast) {
  * Rename all varaibles with namespaces
  * @returns {void}
  */
-async function renameVariables() {
+async function renameVariables(rootAstNode) {
 	// Namespace controllor
 	const namespaceController = namespace.NamespaceController;
 	// Rename controllors
@@ -433,11 +433,53 @@ async function renameVariables() {
 	// AST parser
 	var parser = await astParserCtrl.getOrSetAstParser();
 
+	// compute the current nodes
+	let currentNodes = new Set();
+	parser.traverseAST(rootAstNode, function(node){
+		currentNodes.add(node);
+	});
+
+	// pre-process for static methods and fields (Could not be done in for the methods and fields relate to the objects' usage)
+	// for (const rootNSNode of namespaceController.getRootNameSpaces()){
+	// 	const astNode = rootNSNode.getAstNode();
+	// 	parser.traverseASTWithFlag(astNode, function(node){
+	// 		switch (node.type) {
+	// 			case "ClassBody" : {
+	// 				const body = node.body;
+	// 				for (let i = 0; i < body.length; i++) {
+	// 					const bodyNode = body[i];
+	// 					if (bodyNode.type === "MethodDefinition") {
+	// 						if (bodyNode.static == true) {
+	// 							let declId = bodyNode.key;
+	// 							if (declId && declId.type && declId.type == "Identifier") {
+	// 								declId.name = "static_"+declId.name;
+	// 							}
+	// 						}
+	// 					} else if (bodyNode.type === "Property") {
+	// 						if (bodyNode.static == true) {
+	// 							let declId = bodyNode.key;
+	// 							if (declId && declId.type && declId.type == "Identifier") {
+	// 								declId.name = "static_"+declId.name;
+	// 							}
+	// 						}
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	});
+	// }
+
 	// Initialize the used and defined of each namespace
 	let classOrObjectFields = new Set();
 	let classOrObjectMethods = new Set();
 	let shouldNotBeRenamed = new Set();
+	let processedSpecialCases = new Set();
+
+	// Compute the used and defined of each namespace
 	for (const [astNode, namespaceNode] of namespaceController.getNameSpacePool()) {
+		if (!currentNodes.has(astNode)) {
+			continue;
+		}
 		// Define
 		parser.traverseASTWithFlag(astNode, function(node){
 			// usage functions:
@@ -559,6 +601,8 @@ async function renameVariables() {
 								classOrObjectMethods.add(nnode);
 							}
 						}
+						// This pointer
+						namespaceDefPointers.addPointer(namespaceNode, "this", node, node);
 						break;
 					}
 					// For a class
@@ -572,11 +616,15 @@ async function renameVariables() {
 								// namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId.name, node, declId);
 								namespaceDefPointers.addPointer(namespaceNode, declId.name, node, declId);
 							} else {
-								// namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId._id, node, declId);
-								namespaceDefPointers.addPointer(namespaceNode, declId._id, node, declId);
+								if (declId != null) {
+									// namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId._id, node, declId);
+									namespaceDefPointers.addPointer(namespaceNode, declId._id, node, declId);
+								}
 							}
 							return true;
 						}
+						// This pointer
+						namespaceDefPointers.addPointer(namespaceNode, "this", node, node);
 						// if (node != astNode) 
 						// 	return true;
 						break;
@@ -621,7 +669,7 @@ async function renameVariables() {
 									namespaceDefPointers.addPointer(namespaceNode, declId._id, node, declId);
 								} else {
 									// namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+node._id, node, declId);
-									namespaceDefPointers.addPointer(namespaceNode, node._id, node, declId);
+									// namespaceDefPointers.addPointer(namespaceNode, node._id, node, declId);
 								}
 							}
 							return true;
@@ -644,22 +692,15 @@ async function renameVariables() {
 		// The class methods and fields cannot be renamed
 		// The object properties cannot be renamed
 		for (const nnode of classOrObjectFields) {
-			// parser.traverseAST(nnode, function (node){
-			// 	switch (node.type) {
-			// 		case "Identifier" :
-			// 		case "MethodDefinition":
-			// 		{
-			// 		    shouldNotBeRenamed.add(node);
-			// 			break;
-			// 		}
-			// 		default:
-			// 			break;
-			// 	}
-			// });
 			shouldNotBeRenamed.add(nnode);
 		}
 		for (const nnode of classOrObjectMethods) {
-			shouldNotBeRenamed.add(nnode.key);
+			parser.traverseAST(nnode, function(node){
+				if (node && node.type && (node.type == "Identifier" || node.type == "Property")) {
+					shouldNotBeRenamed.add(node);
+				}
+			});
+			// shouldNotBeRenamed.add(nnode.key);
 		}
 		parser.traverseASTWithFlag(astNode, function(node){
 			function parseCases(node, originNode) {
@@ -696,53 +737,64 @@ async function renameVariables() {
 			if (node && node.type){
 				// Important! The use and define are for each scope
 				if (node._scopeName && node != astNode) {
-					// Parse special cases (No need, if a function/class has same name as a variable, it will be an error or just be covered)
-					// switch (node.type) {
-					// 	case "FunctionExpression" : 
-					// 	case "ArrowFunctionExpression":
-					// 	case "FunctionDeclaration" :{
-					// 		// Function define
-					// 		let declId = node.id;
-					// 		if (declId && declId.type && declId.type == "Identifier") {
-					// 			namespaceUsingPointers.addPointer(namespaceNode, "funcDecl_"+declId.name, node, node);
-					// 		} else {
-					// 			if (declId != null) {
-					// 				namespaceUsingPointers.addPointer(namespaceNode, "funcDecl_"+declId._id, node, node);
-					// 			}
-					// 		}
-					// 		break;
-					// 	}
-					// 	// For a class
-					// 	case "ClassExpression":
-					// 	case "ClassDeclaration": {
-					// 		// class define
-					// 		let declId = node.id;
-					// 		if (declId && declId.type && declId.type == "Identifier") {
-					// 			namespaceUsingPointers.addPointer(namespaceNode, "classDecl_"+declId.name, node, node);
-					// 		} else {
-					// 			namespaceUsingPointers.addPointer(namespaceNode, "classDecl_"+declId._id, node, node);
-					// 		}
-					// 		break;
-					// 	}
-					// 	// For a method definition
-					// 	case "MethodDefinition": {
-					// 		// Method define
-					// 		let declId = node.key;
-					// 		if (declId && declId.type && declId.type == "Identifier") {
-					// 			namespaceUsingPointers.addPointer(namespaceNode, "methodDecl_"+declId.name, node, node);
-					// 		} else {
-					// 			if (declId != null) {
-					// 				namespaceUsingPointers.addPointer(namespaceNode, "methodDecl_"+declId._id, node, node);
-					// 			} else {
-					// 				namespaceUsingPointers.addPointer(namespaceNode, "methodDecl_"+node._id, node, node);
-					// 			}
-					// 		}
-					// 		break;
-					// 	}
-					// 	default : {
-					// 		break;
-					// 	}
-					// }
+					// Parse new scope
+					switch (node.type) {
+						case "FunctionExpression" : 
+						case "ArrowFunctionExpression":
+						case "FunctionDeclaration" :{
+							// Function define
+							let declId = node.id;
+							if (declId && declId.type && declId.type == "Identifier") {
+								namespaceUsingPointers.addPointer(namespaceNode, declId.name, node, declId);
+								processedSpecialCases.add(declId);
+							} else {
+								if (declId != null) {
+									namespaceUsingPointers.addPointer(namespaceNode, declId._id, node, declId);
+									processedSpecialCases.add(declId);
+								}
+							}
+							break;
+						}
+						// For a class
+						case "ClassExpression":
+						case "ClassDeclaration": {
+							// class define
+							let declId = node.id;
+							if (declId && declId.type && declId.type == "Identifier") {
+								namespaceUsingPointers.addPointer(namespaceNode, declId.name, node, declId);
+								processedSpecialCases.add(declId);
+							} else {
+								if (declId != null) {
+								    namespaceUsingPointers.addPointer(namespaceNode, declId._id, node, declId);
+									processedSpecialCases.add(declId);
+								}
+							}
+							break;
+						}
+						// For a method definition
+						case "MethodDefinition": {
+							// Method define
+							let declId = node.key;
+							if (declId && declId.type && declId.type == "Identifier") {
+								namespaceUsingPointers.addPointer(namespaceNode, declId.name, node, declId);
+								processedSpecialCases.add(declId);
+							} else {
+								if (declId != null) {
+									namespaceUsingPointers.addPointer(namespaceNode, declId._id, node, declId);
+									processedSpecialCases.add(declId);
+								} else {
+									// namespaceUsingPointers.addPointer(namespaceNode, node._id, node, declId);
+									// processedSpecialCases.add(declId);
+								}
+							}
+							break;
+						}
+						default : {
+							break;
+						}
+					}
+					return true;
+				} else if (processedSpecialCases.has(node)) {
 					return true;
 				}
 				return parseCases(node, node);
@@ -767,8 +819,12 @@ async function renameVariables() {
 			return false;
 		});
 	}
+	
 	// Construct NameSpaceRenameCtrl with Namespace Tree
-	for (const rootNameSpace of namespaceController.getRootNameSpaces()){
+	let rootNameSpace = namespaceController.getNameSpace(rootAstNode);
+	// Notice : there was a bug that I missed the renameVariables is a inter-module analysis, so I computed on all rootNameSpaces for each module. Now I patched it with a accessable Set, but it is still a time-consuming operation.
+	// Todo : Refact this part to a inter-module analysis.(Make the renameCtrl.*(such asrenameControllor, namespaceUsingPointers, and so on) local to each module)
+	// for (const rootNameSpace of namespaceController.getRootNameSpaces()){
 		let queue = new Array();
 		queue.push(rootNameSpace);
 		while (queue.length > 0) {
@@ -795,9 +851,9 @@ async function renameVariables() {
 				// Copy all pointerNames from parent
 				// Todo: This is a memory for run time performance strategy. Maybe can be optized with pre-computed potentially used pointer.
 				for (const [oldName, newName] of nameSpaceRenameCtrl.getNamespace(parentNameSpace)) {
-					if (shouldNotBeCopied.has(oldName)){
-						continue;
-					}
+					// if (shouldNotBeCopied.has(oldName)){
+					// 	continue;
+					// }
 					nameSpaceRenameCtrl.addNamespace(namespaceNode, oldName, newName)
 				}
 				// Update all pointer name as current Namespace's pointer name
@@ -814,7 +870,8 @@ async function renameVariables() {
 				queue.push(child);
 			}
 		}
-	}
+	// }
+	
 	// Rename all variables
 	// We can use a asynchronous method to rename all variables, since we have computed all name mapping in each namespace node
 	function constructOneNamespace(nameSpaceNode) {
@@ -823,7 +880,8 @@ async function renameVariables() {
 				// let pointers = namespaceUsingPointers.getPointers(nameSpaceNode);
 				for (const usingPointer of namespaceUsingPointers.getPointers(nameSpaceNode)) {
 					if (fullShouldNotBeRenamed.has(usingPointer.astNode) || fullShouldNotBeRenamed.has(usingPointer.defASTNode)) {
-						await renameControllor.renameOnePointer(nameSpaceNode, usingPointer, false);
+						// For the fields/methods/properties, we should not rename them
+						// await renameControllor.renameOnePointer(nameSpaceNode, usingPointer, false);
 					} else {
 						await renameControllor.renameOnePointer(nameSpaceNode, usingPointer, true);
 					}
