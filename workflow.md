@@ -71,6 +71,11 @@
   - Variable prefix(Regex): A variable is defined as prefix + "$$" + variable name
     - Java: [class name]((None) | \$\$[method name])
     - JavaScript: [js file name](\$\$[(class name) | (object name) | (method name)])*
+- var 变量重命名
+  - 思路:
+    1. 从 AST 角度, var变量仅可在VariableDeclaration
+    2. 从代码作用域角度, var变量仅存在函数级和模块级作用域
+  - 实现
 
 ## Class Heritance Analysis
 - 分析 Class/Interfece 的继承关系, 生成继承关系图(结构为字典)

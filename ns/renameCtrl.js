@@ -121,7 +121,7 @@ class RenameCtrl {
         this.nameMap = nameMap;
     }
 
-    async renameOnePointer(namespaceNode, pointer) {
+    async renameOnePointer(namespaceNode, pointer, shouldNameWithRoot = true) {
         let newName = ""
         try {
             newName = await nameSpaceRenameCtrl.getNamespaceMappingInstance(namespaceNode, pointer.pointer);
@@ -132,8 +132,11 @@ class RenameCtrl {
         if (newName == undefined || newName == null || newName == "") {
             // newName = pointer.pointer
             // The undefined but used variables will be defaultly defined in root scope.
-            let rootName = namespaceNode.getSpaceName().split("$$")[0];
-            newName = rootName+"$$"+pointer.pointer;
+            if (shouldNameWithRoot) {
+                newName = namespaceNode.getSpaceName().split("$$")[0]+"$$"+pointer.pointer;
+            } else {
+                newName = pointer.pointer;
+            }
         }
         this.nameMap.setName(newName, pointer.pointer);
         function renameAstNode(node, newname) {

@@ -523,17 +523,19 @@ async function renameVariables() {
 					case "FunctionExpression" : 
 					case "ArrowFunctionExpression":
 					case "FunctionDeclaration" :{
-						// Function define
-						let declId = node.id;
-						if (declId && declId.type && declId.type == "Identifier") {
-							namespaceDefPointers.addPointer(namespaceNode, "funcDecl_"+declId.name, node, node);
-						} else {
-							if (declId != null) {
-								namespaceDefPointers.addPointer(namespaceNode, "funcDecl_"+declId._id, node, node);
-							}
-						}
 						if (node._scopeName && node != astNode) {
 							// In a new scope
+							// Function define
+							let declId = node.id;
+							if (declId && declId.type && declId.type == "Identifier") {
+								// namespaceDefPointers.addPointer(namespaceNode, "funcDecl_"+declId.name, node, declId);
+								namespaceDefPointers.addPointer(namespaceNode, declId.name, node, declId);
+							} else {
+								if (declId != null) {
+									// namespaceDefPointers.addPointer(namespaceNode, "funcDecl_"+declId._id, node, declId);
+									namespaceDefPointers.addPointer(namespaceNode, declId._id, node, declId);
+								}
+							}
 							return true;
 						}
 						// current function args define
@@ -567,14 +569,17 @@ async function renameVariables() {
 							// class define
 							let declId = node.id;
 							if (declId && declId.type && declId.type == "Identifier") {
-								namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId.name, node, node);
+								// namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId.name, node, declId);
+								namespaceDefPointers.addPointer(namespaceNode, declId.name, node, declId);
 							} else {
-								namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId._id, node, node);
+								// namespaceDefPointers.addPointer(namespaceNode, "classDecl_"+declId._id, node, declId);
+								namespaceDefPointers.addPointer(namespaceNode, declId._id, node, declId);
 							}
 							return true;
 						}
-						if (node == astNode) 
-							return false;
+						// if (node != astNode) 
+						// 	return true;
+						break;
 					}
 					case "ClassBody" : {
 						for (const nnode of node.body) {
@@ -603,19 +608,22 @@ async function renameVariables() {
 					}
 					// For a method definition
 					case "MethodDefinition":
-						// Method define
-						let declId = node.key;
-						if (declId && declId.type && declId.type == "Identifier") {
-							namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+declId.name, node, node);
-						} else {
-							if (declId != null) {
-								namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+declId._id, node, node);
-							} else {
-								namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+node._id, node, node);
-							}
-						}
 						if (node._scopeName && node != astNode) {
 							// In a new scope
+							// Method define
+							let declId = node.key;
+							if (declId && declId.type && declId.type == "Identifier") {
+								// namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+declId.name, node, declId);
+								namespaceDefPointers.addPointer(namespaceNode,""+declId.name, node, declId);
+							} else {
+								if (declId != null) {
+									// namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+declId._id, node, declId);
+									namespaceDefPointers.addPointer(namespaceNode, declId._id, node, declId);
+								} else {
+									// namespaceDefPointers.addPointer(namespaceNode, "methodDecl_"+node._id, node, declId);
+									namespaceDefPointers.addPointer(namespaceNode, node._id, node, declId);
+								}
+							}
 							return true;
 						}
 						// Sub-nodes has been processed
@@ -651,7 +659,7 @@ async function renameVariables() {
 			shouldNotBeRenamed.add(nnode);
 		}
 		for (const nnode of classOrObjectMethods) {
-			shouldNotBeRenamed.add(nnode.key.name);
+			shouldNotBeRenamed.add(nnode.key);
 		}
 		parser.traverseASTWithFlag(astNode, function(node){
 			function parseCases(node, originNode) {
@@ -688,9 +696,73 @@ async function renameVariables() {
 			if (node && node.type){
 				// Important! The use and define are for each scope
 				if (node._scopeName && node != astNode) {
+					// Parse special cases (No need, if a function/class has same name as a variable, it will be an error or just be covered)
+					// switch (node.type) {
+					// 	case "FunctionExpression" : 
+					// 	case "ArrowFunctionExpression":
+					// 	case "FunctionDeclaration" :{
+					// 		// Function define
+					// 		let declId = node.id;
+					// 		if (declId && declId.type && declId.type == "Identifier") {
+					// 			namespaceUsingPointers.addPointer(namespaceNode, "funcDecl_"+declId.name, node, node);
+					// 		} else {
+					// 			if (declId != null) {
+					// 				namespaceUsingPointers.addPointer(namespaceNode, "funcDecl_"+declId._id, node, node);
+					// 			}
+					// 		}
+					// 		break;
+					// 	}
+					// 	// For a class
+					// 	case "ClassExpression":
+					// 	case "ClassDeclaration": {
+					// 		// class define
+					// 		let declId = node.id;
+					// 		if (declId && declId.type && declId.type == "Identifier") {
+					// 			namespaceUsingPointers.addPointer(namespaceNode, "classDecl_"+declId.name, node, node);
+					// 		} else {
+					// 			namespaceUsingPointers.addPointer(namespaceNode, "classDecl_"+declId._id, node, node);
+					// 		}
+					// 		break;
+					// 	}
+					// 	// For a method definition
+					// 	case "MethodDefinition": {
+					// 		// Method define
+					// 		let declId = node.key;
+					// 		if (declId && declId.type && declId.type == "Identifier") {
+					// 			namespaceUsingPointers.addPointer(namespaceNode, "methodDecl_"+declId.name, node, node);
+					// 		} else {
+					// 			if (declId != null) {
+					// 				namespaceUsingPointers.addPointer(namespaceNode, "methodDecl_"+declId._id, node, node);
+					// 			} else {
+					// 				namespaceUsingPointers.addPointer(namespaceNode, "methodDecl_"+node._id, node, node);
+					// 			}
+					// 		}
+					// 		break;
+					// 	}
+					// 	default : {
+					// 		break;
+					// 	}
+					// }
 					return true;
 				}
 				return parseCases(node, node);
+			}
+			return false;
+		});
+	}
+	let fullShouldNotBeRenamed = new Set();
+	for (const nnode of shouldNotBeRenamed) {
+		fullShouldNotBeRenamed.add(nnode);
+		parser.traverseASTWithFlag(nnode, function (node){
+			switch (node.type) {
+				case "Identifier" :
+				case "MethodDefinition":
+				{
+					fullShouldNotBeRenamed.add(node);
+					return true;
+				}
+				default:
+					break;
 			}
 			return false;
 		});
@@ -705,18 +777,34 @@ async function renameVariables() {
 			if (!namespaceNode.hasParent()) {
 				// root namespace
 				for (const defPointer of defPointers) {
+					if (fullShouldNotBeRenamed.has(defPointer.astNode) || fullShouldNotBeRenamed.has(defPointer.defASTNode)) {
+						continue;
+					}
 					const newName = namespaceDefPointers.makeNewName(namespaceNode, defPointer);
 					nameSpaceRenameCtrl.addNamespace(namespaceNode, defPointer.pointer, newName);
 				}
 			} else {
 			    const parentNameSpace = namespaceNode.getParent();
+				let shouldNotBeCopied = new Set();
+				for (const defPointer of defPointers) {
+					if (fullShouldNotBeRenamed.has(defPointer.astNode) || fullShouldNotBeRenamed.has(defPointer.defASTNode)) {
+						oldName = defPointer.pointer;
+						shouldNotBeCopied.add(oldName);
+					}
+				}
 				// Copy all pointerNames from parent
 				// Todo: This is a memory for run time performance strategy. Maybe can be optized with pre-computed potentially used pointer.
 				for (const [oldName, newName] of nameSpaceRenameCtrl.getNamespace(parentNameSpace)) {
+					if (shouldNotBeCopied.has(oldName)){
+						continue;
+					}
 					nameSpaceRenameCtrl.addNamespace(namespaceNode, oldName, newName)
 				}
 				// Update all pointer name as current Namespace's pointer name
 				for (const defPointer of defPointers) {
+					if (fullShouldNotBeRenamed.has(defPointer.astNode) || fullShouldNotBeRenamed.has(defPointer.defASTNode)) {
+						continue;
+					}
 				    const newName = namespaceDefPointers.makeNewName(namespaceNode, defPointer);
 					nameSpaceRenameCtrl.addNamespace(namespaceNode, defPointer.pointer, newName);
 				}
@@ -733,8 +821,12 @@ async function renameVariables() {
 		return new Promise(async function (resolve, reject){
 		    try {
 				// let pointers = namespaceUsingPointers.getPointers(nameSpaceNode);
-				for (const usingPointers of namespaceUsingPointers.getPointers(nameSpaceNode)) {
-					await renameControllor.renameOnePointer(nameSpaceNode, usingPointers);
+				for (const usingPointer of namespaceUsingPointers.getPointers(nameSpaceNode)) {
+					if (fullShouldNotBeRenamed.has(usingPointer.astNode) || fullShouldNotBeRenamed.has(usingPointer.defASTNode)) {
+						await renameControllor.renameOnePointer(nameSpaceNode, usingPointer, false);
+					} else {
+						await renameControllor.renameOnePointer(nameSpaceNode, usingPointer, true);
+					}
 				}
 				resolve();
 			} catch (e) {
