@@ -12,7 +12,7 @@ async function processModule(ast, currModuleName){
     let parser = await astParserCtrl.getOrSetAstParser();
     parser.traverseAST(ast, function (node) {
         // Find all require statements
-        if (node.type === 'CallExpression') {
+        if (node && node.type && node.type === 'CallExpression') {
             const calleeName = node.callee.name;
             if (calleeName) {
                 const arr = calleeName.split('$$');
@@ -24,7 +24,7 @@ async function processModule(ast, currModuleName){
         }
 
         // 查找 module.exports 语句
-        if (node.type === 'AssignmentExpression' &&
+        if (node && node.type && node.type === 'AssignmentExpression' &&
             node.left.object && node.left.object.name && node.left.property && node.left.property.name
             ) {
                 let arr = node.left.object.name.split('$$');

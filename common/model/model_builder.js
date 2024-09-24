@@ -90,7 +90,7 @@ async function initializeModelsFromSource(scriptName, scriptPath, code, language
 				switch (node.type) {
 					// Root node of a file
 					case "Program":
-						node._scopeName = node.value.replace(/\.js$/, "").replace("\\", "_").replace("/", "_");
+						node._scopeName = node.value.replace(/\.js$/, "").replaceAll("\\", "_").replaceAll("/", "_");
 						break;
 					/* Functions can be seen as two new scope
 						** 1. The arguments and this pointers.(belone to the function node itself)
@@ -872,6 +872,8 @@ async function renameVariables(rootAstNode) {
 		}
 	// }
 	
+	// For var declaration, implement a namespace hoisting to fix it's namespace.
+
 	// Rename all variables
 	// We can use a asynchronous method to rename all variables, since we have computed all name mapping in each namespace node
 	function constructOneNamespace(nameSpaceNode) {
@@ -883,7 +885,9 @@ async function renameVariables(rootAstNode) {
 						// For the fields/methods/properties, we should not rename them
 						// await renameControllor.renameOnePointer(nameSpaceNode, usingPointer, false);
 					} else {
-						await renameControllor.renameOnePointer(nameSpaceNode, usingPointer, true);
+						// await renameControllor.renameOnePointer(nameSpaceNode, usingPointer, true);
+						// We should not define the namespace for module-global(undefined variables etc.) and env-global(require, module.exports etc.)
+						await renameControllor.renameOnePointer(nameSpaceNode, usingPointer, false);
 					}
 				}
 				resolve();
