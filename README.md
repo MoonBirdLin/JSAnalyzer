@@ -1,8 +1,9 @@
-# JSAnalyzer
+# ~~JSAnalyzer~~ (Deprecated)
 
 - 一个自实现的JS程序分析工具
 - 设计理念参考[workflow.md](./workflow.md)
-
+- 胎死腹中的工具...写一半发现设计理念和 [jelly](https://github.com/cs-au-dk/jelly) 重复了; 目前可以进行基础的AST解析, 命名空间解析和MDG解析, 后面发现设计思路重合就摆烂了, 权当是coding练习了
+  
 ## Supported Functions
 
 ### MDG(Module Dependency Graph) Analysis
